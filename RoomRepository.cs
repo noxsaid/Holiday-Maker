@@ -39,6 +39,26 @@ public class RoomRepository
         ";
         await using MySqlCommand command = new MySqlCommand(sql, _connection);
 
+        command.Parameters.AddWithValue("@city", City);
+        command.Parameters.AddWithValue("@guests", guests);
+        command.Parameters.AddWithValue("@checkIn", checkIn);
+        command.Parameters.AddWithValue("@checkOut", checkOut);
+
+        await using MySqlDataReader reader = await command.ExecuteReaderAsync();
+
+        while (await reader.ReadAsync())
+        {
+            RoomSearchResults room = new RoomSearchResults(
+                reader.GetInt32("room_id"),
+                reader.GetString("room_name"),
+                reader.GetString("accommodation_name"),
+                reader.GetString("city"),
+                reader.GetInt32("max_capacity"),
+                reader.GetInt32("price_per_night")
+            );
+            results.Add(room);
+        }
+
         return results;
     
     }
