@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Holiday_Maker;
 using MySqlConnector;
 
 public class BookingRepository
@@ -101,4 +102,50 @@ public class BookingRepository
             return insertCommand.LastInsertedId;
         }
     }
+
+
+    public async Task<List<CustomerBookingRecord>> GetCustomerBookingsAsync(int customerId)
+{
+    List<CustomerBookingRecord> bookings = new List<CustomerBookingRecord>();
+
+string query = @"
+        SELECT 
+            b.id AS booking_id,
+            a.name AS accommodation_name,
+            r.name AS room_name,
+            b.booking_start,
+            b.booking_end,
+            b.guest_count AS guests,
+            DATEDIFF(b.booking_end, b.booking_start) AS nights,
+            CAST((DATEDIFF(b.booking_end, b.booking_start) * r.price_per_night) AS DECIMAL(10,2)) AS total_price
+        FROM bookings b
+        JOIN rooms r ON b.room_id = r.id
+        JOIN accommodations a ON r.accommodation_id = a.id
+        WHERE b.customer_id = @customerId;
+    ";
+
+    using (MySqlCommand command = new MySqlCommand(query, _connection))
+    {
+        command.Parameters.AddWithValue("@customerId", customerId);
+
+        using (MySqlDataReader reader = await command.ExecuteReaderAsync())
+        {
+            while (await reader.ReadAsync())
+            {
+                bookings.Add(new CustomerBookingRecord(
+                    BookingId: reader.GetInt64("booking_id"),
+                    AccommodationName: reader.GetString("accommodation_name"),
+                    RoomName: reader.GetString("room_name"),
+                    StartDate: reader.GetDateTime("booking_start"),
+                    EndDate: reader.GetDateTime("booking_end"),
+                    Guests: reader.GetInt32("guests"),
+                    Nights: reader.GetInt64("nights"),
+                    TotalPrice: reader.GetDecimal("total_price")
+                ));
+            }
+        }
+    }
+
+    return bookings;
+}
 }

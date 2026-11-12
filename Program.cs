@@ -71,6 +71,13 @@ class Program
             long id = await repo.CreateBookingAsync(1, 7, "2026-12-10", "2026-12-08", 2);
             Console.WriteLine($"   -> Resultat: Lyckades (Borde misslyckats! ID: {id})");
         });
+
+        List<CustomerBookingRecord> customerBookings = await repo.GetCustomerBookingsAsync(1);
+        Console.WriteLine($"\nBokningar för kund 1 (antal: {customerBookings.Count});");
+        foreach (CustomerBookingRecord b in customerBookings)
+        {
+            Console.WriteLine($"-> Bokning #{b.BookingId}: {b.AccommodationName} ({b.RoomName}), {b.StartDate} till {b.EndDate}, {b.Guests} gäster, Totalt: {b.TotalPrice} SEK");
+        }
     }
 
     

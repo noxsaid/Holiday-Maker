@@ -6,8 +6,8 @@ namespace Holiday_Maker
         long BookingId,
         string AccommodationName,
         string RoomName,
-        string startDate,
-        string endDate,
+        DateTime StartDate,
+        DateTime EndDate,
         int Guests,
         long Nights,
         decimal TotalPrice
