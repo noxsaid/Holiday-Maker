@@ -41,34 +41,34 @@ class Program
 
     public static async Task RunBookingTestAsync(MySqlConnection connection)
     {
-        BookingRepositry repo = new BookingRepositry(connection);
+        BookingRepository repo = new BookingRepository(connection);
 
         await ExecuteTestAsync("Test 1: Valid Booking", async () =>
         {
-            long id = await repo.CreatBookingAsync(1, 7, "2026-12-01", "2026-12-05", 2);
+            long id = await repo.CreateBookingAsync(1, 7, "2026-12-01", "2026-12-05", 2);
             Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {id}");
         });
 
         await ExecuteTestAsync("Test 2: Overlap Booking", async() =>
         {
-            long id = await repo.CreatBookingAsync(1, 7, "2026-12-03", "2026-12-07", 2);
+            long id = await repo.CreateBookingAsync(1, 7, "2026-12-03", "2026-12-07", 2);
             Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {id}");
         });
 
         await ExecuteTestAsync("Test 3: Same-day handover", async () => 
         {
-            long id = await repo.CreatBookingAsync(3, 7, "2026-12-05", "2026-12-06", 2);
+            long id = await repo.CreateBookingAsync(3, 7, "2026-12-05", "2026-12-06", 2);
             Console.WriteLine($"   -> Resultat: Lyckades! Nytt bokningsnummer: {id}");
         });
 
         await ExecuteTestAsync("Test 4: Too many guests", async () => 
         {
-            long id = await repo.CreatBookingAsync(1, 7, "2026-12-10", "2026-12-12", 5);
+            long id = await repo.CreateBookingAsync(1, 7, "2026-12-10", "2026-12-12", 5);
             Console.WriteLine($"   -> Resultat: Lyckades! Nytt bokningsnummer: {id}");
         });
 
         await ExecuteTestAsync("Test 5: Bad dates", async () => {
-            long id = await repo.CreatBookingAsync(1, 7, "2026-12-10", "2026-12-08", 2);
+            long id = await repo.CreateBookingAsync(1, 7, "2026-12-10", "2026-12-08", 2);
             Console.WriteLine($"   -> Resultat: Lyckades (Borde misslyckats! ID: {id})");
         });
     }

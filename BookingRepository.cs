@@ -2,16 +2,16 @@ using System;
 using System.Threading.Tasks;
 using MySqlConnector;
 
-public class BookingRepositry
+public class BookingRepository
 {
     private readonly MySqlConnection _connection;
 
-    public BookingRepositry(MySqlConnection connection)
+    public BookingRepository(MySqlConnection connection)
     {
         _connection = connection;
     }
 
-    public async Task<long> CreatBookingAsync(int customerId, int roomId, string checkIn, string checkOut, int guests)
+    public async Task<long> CreateBookingAsync(int customerId, int roomId, string checkIn, string checkOut, int guests)
     {
         Validatedates(checkIn, checkOut);
 
