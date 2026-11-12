@@ -60,7 +60,7 @@ public class BookingRepositry
         FROM bookings
         WHERE room_id = @roomId
           AND booking_start < @checkOut
-          AND booking_end < @checkIn;";
+          AND booking_end > @checkIn;";
         
         using (MySqlCommand checkCommand = new MySqlCommand(checkQuery, connection))
         {

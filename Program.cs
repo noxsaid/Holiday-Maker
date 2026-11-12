@@ -48,5 +48,13 @@ class Program
             long id = await repo.CreatBookingAsync(1, 7, "2026-12-01", "2026-12-05", 2);
             Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {id}");
         });
+
+        await ExecuteTestAsync("Test 2: Overlap Booking", async() =>
+        {
+            long id = await repo.CreatBookingAsync(1, 7, "2026-12-03", "2026-12-07", 2);
+            Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {id}");
+        });
     }
+
+    
 }
