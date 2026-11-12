@@ -9,19 +9,44 @@ class Program
         await using MySqlConnection connection = Database.GetConnection();
         await connection.OpenAsync();
 
-        RoomRepository repository = new RoomRepository(connection);
+        await RunBookingTestAsync(connection);
+    }
 
-        List<RoomSearchResults> results = await repository.SearchAvailableRoomsAsync(
-            "Malmö",
-            "2026-12-01",
-            "2026-12-05",
-            2
-        );
-
-        Console.WriteLine($"Found {results.Count} available rooms:\n");
-        foreach (RoomSearchResults room in results)
+    private static async Task ExecuteTestAsync(string testname, Func<Task> testAction)
+    {
+        Console.WriteLine($"\nkör {testname}...");
+        try
         {
-            Console.WriteLine($"[ID: {room.Id}] {room.RoomName} at {room.AccommodationName} ({room.City}) - Capacity: {room.maxCapacity} - {room.PricePerNight} SEK/night");
+            await testAction();
         }
+        catch (ArgumentException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"    -> Fångat ArgumentException: {ex.Message}");
+            Console.ResetColor();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"    -> Fångat InvalidOperationException (Vänta för affärsregel): {ex.Message}");
+            Console.ResetColor();
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"    -> Oväntat fel: {ex.Message}");
+            Console.ResetColor();
+        }
+    }
+
+    public static async Task RunBookingTestAsync(MySqlConnection connection)
+    {
+        BookingRepositry repo = new BookingRepositry(connection);
+
+        await ExecuteTestAsync("Test 1: Valid Booking", async () =>
+        {
+            long id = await repo.CreatBookingAsync(1, 7, "2026-12-01", "2026-12-05", 2);
+            Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {id}");
+        });
     }
 }

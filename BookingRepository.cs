@@ -1,46 +1,43 @@
-using System.ComponentModel.Design;
-using System.Security;
+using System;
+using System.Threading.Tasks;
 using MySqlConnector;
 
 public class BookingRepositry
 {
-    private readonly string _connectionString;
-    public BookingRepositry(string connectionString)
+    private readonly MySqlConnection _connection;
+
+    public BookingRepositry(MySqlConnection connection)
     {
-        _connectionString = connectionString;
+        _connection = connection;
     }
 
     public async Task<long> CreatBookingAsync(int customerId, int roomId, string checkIn, string checkOut, int guests)
     {
         Validatedates(checkIn, checkOut);
 
-        using (MySqlConnection connection = new MySqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
+        // Uses the shared connection directly without creating a new one
+        await VerifyRoomCapacityAsync(_connection, roomId, guests);
+        await CheckOverlapAsync(_connection, roomId, checkIn, checkOut);
 
-            await VerifyRoomCapacityAsync(connection, roomId, guests);
-            await CheckOverlapAsync(connection, roomId, checkIn, checkOut);
-
-            return await InsertBookingAsync(connection, customerId, roomId, checkIn, checkOut, guests);
-        }
+        return await InsertBookingAsync(_connection, customerId, roomId, checkIn, checkOut, guests);
     }
 
     private void Validatedates(string checkIn, string checkOut)
     {
         if (!DateTime.TryParse(checkIn, out DateTime startDate) ||
-        !DateTime.TryParse(checkIn, out DateTime endDate) ||
-        endDate <= startDate)
+            !DateTime.TryParse(checkOut, out DateTime endDate) ||
+            endDate <= startDate)
         {
             throw new ArgumentException("Utcheckningsdatumet måste vara efter incheckningsdatumet.");
         }
     }
 
-    private async Task VerifyRoomCapacityAsync(MySqlConnection connection, int roomid, int guests)
+    private async Task VerifyRoomCapacityAsync(MySqlConnection connection, int roomId, int guests)
     {
         string capacityQuery = "SELECT max_capacity FROM rooms WHERE id = @roomId;";
         using (MySqlCommand capacityCommand = new MySqlCommand(capacityQuery, connection))
         {
-            capacityCommand.Parameters.AddWithValue("@roomId", roomid);
+            capacityCommand.Parameters.AddWithValue("@roomId", roomId);
 
             object? capacityResult = await capacityCommand.ExecuteScalarAsync();
             if (capacityResult == null)
@@ -48,7 +45,7 @@ public class BookingRepositry
                 throw new InvalidOperationException("Rummet hittades inte.");
             }
 
-            int maxCapacity = (int)capacityResult;
+            int maxCapacity = Convert.ToInt32(capacityResult);
             if (guests > maxCapacity)
             {
                 throw new InvalidOperationException($"Antalet gäster ({guests}) överskrider rummets maxkapacitet ({maxCapacity}).");
@@ -77,8 +74,8 @@ public class BookingRepositry
                 throw new InvalidOperationException("Kunde inte verifiera tillgänglighet.");
             }
 
-            long onverlappingCount = (long)overlapResults;
-            if (onverlappingCount > 0)
+            long overlappingCount = Convert.ToInt64(overlapResults);
+            if (overlappingCount > 0)
             {
                 throw new InvalidOperationException("Rummet är inte längre tillgängligt för de valda datumen.");
             }
