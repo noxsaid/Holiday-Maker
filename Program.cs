@@ -54,6 +54,12 @@ class Program
             long id = await repo.CreatBookingAsync(1, 7, "2026-12-03", "2026-12-07", 2);
             Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {id}");
         });
+
+        await ExecuteTestAsync("Test 3: Same-day handover", async () => 
+        {
+            long id = await repo.CreatBookingAsync(3, 7, "2026-12-05", "2026-12-06", 2);
+            Console.WriteLine($"   -> Resultat: Lyckades! Nytt bokningsnummer: {id}");
+        });
     }
 
     
