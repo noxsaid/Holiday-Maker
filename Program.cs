@@ -4,26 +4,24 @@ using MySqlConnector;
 
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        try
-        {
-            using var connection = Database.GetConnection();
-            connection.Open();
-            Console.WriteLine("Connection successful!");
+        await using MySqlConnection connection = Database.GetConnection();
+        await connection.OpenAsync();
 
-            string query = "SELECT COUNT(*) FROM cities;";
-            using var command = new MySqlCommand(query, connection);
-            
-            // Safe unboxing handling potential null/empty results
-            object? result = command.ExecuteScalar();
-            long cityCount = result != null ? Convert.ToInt64(result) : 0;
-            
-            Console.WriteLine($"Total cities in database: {cityCount}");
-        }
-        catch (Exception ex)
+        RoomRepository repository = new RoomRepository(connection);
+
+        List<RoomSearchResults> results = await repository.SearchAvailableRoomsAsync(
+            "Malmö",
+            "2026-12-01",
+            "2026-12-05",
+            2
+        );
+
+        Console.WriteLine($"Found {results.Count} available rooms:\n");
+        foreach (RoomSearchResults room in results)
         {
-            Console.WriteLine($"Database error: {ex.Message}");
+            Console.WriteLine($"[ID: {room.Id}] {room.RoomName} at {room.AccommodationName} ({room.City}) - Capacity: {room.MaxCapacity} - {room.PricePerNight} SEK/night");
         }
     }
 }

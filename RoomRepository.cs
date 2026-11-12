@@ -34,7 +34,7 @@ public class RoomRepository
           AND r.max_capacity >= @guests
           AND r.id NOT IN (
               SELECT room_id FROM bookings
-              WHERE booking_start < @checkOut AND booking_end > checkIn
+              WHERE booking_start < @checkOut AND booking_end > @checkIn
               );
         ";
         await using MySqlCommand command = new MySqlCommand(sql, _connection);
