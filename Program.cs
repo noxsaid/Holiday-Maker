@@ -66,6 +66,11 @@ class Program
             long id = await repo.CreatBookingAsync(1, 7, "2026-12-10", "2026-12-12", 5);
             Console.WriteLine($"   -> Resultat: Lyckades! Nytt bokningsnummer: {id}");
         });
+
+        await ExecuteTestAsync("Test 5: Bad dates", async () => {
+            long id = await repo.CreatBookingAsync(1, 7, "2026-12-10", "2026-12-08", 2);
+            Console.WriteLine($"   -> Resultat: Lyckades (Borde misslyckats! ID: {id})");
+        });
     }
 
     
