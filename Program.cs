@@ -21,7 +21,7 @@ class Program
         Console.WriteLine($"Found {results.Count} available rooms:\n");
         foreach (RoomSearchResults room in results)
         {
-            Console.WriteLine($"[ID: {room.Id}] {room.RoomName} at {room.AccommodationName} ({room.City}) - Capacity: {room.MaxCapacity} - {room.PricePerNight} SEK/night");
+            Console.WriteLine($"[ID: {room.Id}] {room.RoomName} at {room.AccommodationName} ({room.City}) - Capacity: {room.maxCapacity} - {room.PricePerNight} SEK/night");
         }
     }
 }

@@ -5,6 +5,6 @@ public record RoomSearchResults(
     string RoomName,
     string AccommodationName,
     string City,
-    int MaxCapacity,
+    int maxCapacity,
     decimal PricePerNight
 );
