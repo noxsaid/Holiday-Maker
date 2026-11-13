@@ -81,7 +81,7 @@ class Program
             Console.WriteLine($"-> Bokning #{b.BookingId}: {b.AccommodationName} ({b.RoomName}), {b.StartDate:yyyy-MM-dd} till {b.EndDate:yyyy-MM-dd}, {b.Guests} gäster, Totalt: {b.TotalPrice} SEK");
         }
 
-    bool success = await repo.CancelBookingAsync(connection, 1);
+    bool success = await repo.CancelBookingAsync(1);
 
     if (success)
         {

@@ -149,7 +149,7 @@ public class BookingRepository
     return bookings;
     }
 
-    public async Task<bool> CancelBookingAsync(MySqlConnection connection, int bookingId)
+    public async Task<bool> CancelBookingAsync(int bookingId)
     {
         string query = "DELETE FROM bookings WHERE id = @bookingId;";
 
