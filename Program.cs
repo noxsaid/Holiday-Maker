@@ -44,33 +44,34 @@ class Program
     public static async Task RunBookingTestAsync(MySqlConnection connection)
     {
         BookingRepository repo = new BookingRepository(connection);
+        long createdBookingId = 0;
 
         await ExecuteTestAsync("Test 1: Valid Booking", async () =>
         {
-            long id = await repo.CreateBookingAsync(1, 7, "2026-12-01", "2026-12-05", 2);
-            Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {id}");
+            createdBookingId = await repo.CreateBookingAsync(1, 7, "2027-01-01", "2027-01-05", 2);
+            Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {createdBookingId}");
         });
 
         await ExecuteTestAsync("Test 2: Overlap Booking", async() =>
         {
-            long id = await repo.CreateBookingAsync(1, 7, "2026-12-03", "2026-12-07", 2);
+            long id = await repo.CreateBookingAsync(1, 7, "2027-01-03", "2027-01-07", 2);
             Console.WriteLine($"    -> Resultat: Lyckades! Nytt bokningnummer: {id}");
         });
 
         await ExecuteTestAsync("Test 3: Same-day handover", async () => 
         {
-            long id = await repo.CreateBookingAsync(3, 7, "2026-12-05", "2026-12-06", 2);
+            long id = await repo.CreateBookingAsync(3, 7, "2027-01-05", "2027-01-06", 2);
             Console.WriteLine($"   -> Resultat: Lyckades! Nytt bokningsnummer: {id}");
         });
 
         await ExecuteTestAsync("Test 4: Too many guests", async () => 
         {
-            long id = await repo.CreateBookingAsync(1, 7, "2026-12-10", "2026-12-12", 5);
+            long id = await repo.CreateBookingAsync(1, 7, "2027-01-10", "2027-01-12", 5);
             Console.WriteLine($"   -> Resultat: Lyckades! Nytt bokningsnummer: {id}");
         });
 
         await ExecuteTestAsync("Test 5: Bad dates", async () => {
-            long id = await repo.CreateBookingAsync(1, 7, "2026-12-10", "2026-12-08", 2);
+            long id = await repo.CreateBookingAsync(1, 7, "2027-01-10", "2027-01-08", 2);
             Console.WriteLine($"   -> Resultat: Lyckades (Borde misslyckats! ID: {id})");
         });
 
@@ -81,57 +82,69 @@ class Program
             Console.WriteLine($"-> Bokning #{b.BookingId}: {b.AccommodationName} ({b.RoomName}), {b.StartDate:yyyy-MM-dd} till {b.EndDate:yyyy-MM-dd}, {b.Guests} gäster, Totalt: {b.TotalPrice} SEK");
         }
 
-    bool success = await repo.CancelBookingAsync(1);
+        // Run update tests using the actively created booking ID before canceling it
+        if (createdBookingId > 0)
+        {
+            int targetId = Convert.ToInt32(createdBookingId);
 
-    if (success)
-        {
-            Console.WriteLine("Test Cancel: Bokningen har avbokats framgångsrikt.");
-        }
-        else
-        {
-            Console.WriteLine("Test Cancel: Kunde inte hitta bokningen.");
-        }
-
-    try
-        {
-            bool updateSuccess = await repo.UpdateBookingGuestsAsync(1, 1);
-            if (updateSuccess)
+            try
             {
-                Console.WriteLine("Test Update Guests: Antalet gäster har uppdaterats till 1.");
+                bool updateSuccess = await repo.UpdateBookingGuestsAsync(targetId, 1);
+                if (updateSuccess)
+                {
+                    Console.WriteLine("\nTest Update Guests: Antalet gäster har uppdaterats till 1.");
+                }
+                else
+                {
+                    Console.WriteLine("\nTest Update Guests: Kunde inte hitta bokningen.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nTest Update Guests - Oväntat fel: {ex.Message}");
+            }
+
+            try
+            {
+                await repo.UpdateBookingGuestsAsync(targetId, 5);
+                Console.WriteLine("\nTest Update Guests: Borde ha misslyckats pga kapacitet!");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"    -> Fångat kapacitetsfel som förväntat: {ex.Message}");
+                Console.ResetColor();
+            }
+
+            // Finally, cancel the booking to free up the room
+            bool success = await repo.CancelBookingAsync(targetId);
+            if (success)
+            {
+                Console.WriteLine("\nTest Cancel: Bokningen har avbokats framgångsrikt och rummet är frigjort.");
+            }
+            else
+            {
+                Console.WriteLine("\nTest Cancel: Kunde inte hitta bokningen.");
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Test Update Guests - Oväntat fel: {ex.Message}");
-        }
 
-        try
-        {
-            await repo.UpdateBookingGuestsAsync(1, 5);
-            Console.WriteLine("Test Update Guests: Borde ha misslyckats pga kapacitet!");
-        }
-        catch (InvalidOperationException ex)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"    -> Fångat kapacitetsfel som förväntat: {ex.Message}");
-            Console.ResetColor();
-        }
         CustomerRepository customerRepo = new CustomerRepository(connection);
 
         try
         {
-            long newCustomerId = await customerRepo.RegisterCustomerAsync("Test Person", "0709998877", "testperson@email.com");
-            Console.WriteLine($"Test Register Customer: Lyckades! Nytt kund-ID: {newCustomerId}");
+            string uniqueEmail = $"testperson_{DateTime.Now.Ticks}@email.com";
+            long newCustomerId = await customerRepo.RegisterCustomerAsync("Test Person", "0709998877", uniqueEmail);
+            Console.WriteLine($"\nTest Register Customer: Lyckades! Nytt kund-ID: {newCustomerId}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Test Regiester Customer - Fel : {ex.Message}");
+            Console.WriteLine($"\nTest Register Customer - Fel : {ex.Message}");
         }
 
         try
         {
             await customerRepo.RegisterCustomerAsync("Duplicate Person", "0701112233", "alex@example.com");
-            Console.WriteLine("Test Register Duplicate: Borde ha misslyckats!");
+            Console.WriteLine("\nTest Register Duplicate: Borde ha misslyckats!");
         }
         catch (InvalidOperationException ex)
         {
