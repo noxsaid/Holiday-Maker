@@ -160,4 +160,39 @@ public class BookingRepository
         return rowsAffected > 0;
         
     }
+
+    public async Task<bool> UpdateBookingGuestsAsync(int bookingId, int newGuests)
+    {
+        string roomCheckQuery = @"
+        SELECT r.max_capacity
+        FROM bookings b
+        JOIN tooms r ON b.room_id = r.id
+        WHERE b.id = @bookingId;";
+
+        int maxCapacity = 0;
+        using (MySqlCommand checkCmd = new MySqlCommand(roomCheckQuery, _connection))
+        {
+            checkCmd.Parameters.AddWithValue("@bookingId", bookingId);
+            object? result = await checkCmd.ExecuteScalarAsync();
+
+            if (result == null)
+            {
+                return false;
+            }
+            maxCapacity = Convert.ToInt32(result);
+        }
+
+        if (newGuests > maxCapacity)
+        {
+            throw new InvalidOperationException($"Antalet gäster ({newGuests}) överskrider rummets maxkapacitet ({maxCapacity}).");
+        }
+
+        string updateQuery = "UPDATE bookings SET guest_count = @guests WHERE id = @bookingId;";
+        using MySqlCommand updateCmd = new MySqlCommand(updateQuery, _connection);
+        updateCmd.Parameters.AddWithValue("@guests", newGuests);
+        updateCmd.Parameters.AddWithValue("@bookingId", bookingId);
+
+        int rowsAffected = await updateCmd.ExecuteNonQueryAsync();
+        return rowsAffected > 0;
+    }
 }
