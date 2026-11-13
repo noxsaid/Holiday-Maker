@@ -151,9 +151,9 @@ public class BookingRepository
 
     public async Task<bool> CancelBookingAsync(MySqlConnection connection, int bookingId)
     {
-        string query = "DELET FROM bookings WHERE id = @bookingId;";
+        string query = "DELETE FROM bookings WHERE id = @bookingId;";
 
-        using MySqlCommand command = new MySqlCommand(query, connection);
+        using MySqlCommand command = new MySqlCommand(query, _connection);
         command.Parameters.AddWithValue("@bookingId", bookingId);
 
         int rowsAffected = await command.ExecuteNonQueryAsync();
