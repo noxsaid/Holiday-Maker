@@ -102,7 +102,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine(@"Test Update Guests - Oväntat fel: {ex.Message}");
+            Console.WriteLine($"Test Update Guests - Oväntat fel: {ex.Message}");
         }
 
         try
@@ -116,6 +116,6 @@ class Program
             Console.WriteLine($"    -> Fångat kapacitetsfel som förväntat: {ex.Message}");
             Console.ResetColor();
         }
-
-}
+        
+    }
 }
