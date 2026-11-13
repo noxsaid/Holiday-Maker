@@ -76,7 +76,7 @@ class Program
         Console.WriteLine($"\nBokningar för kund 1 (antal: {customerBookings.Count});");
         foreach (CustomerBookingRecord b in customerBookings)
         {
-            Console.WriteLine($"-> Bokning #{b.BookingId}: {b.AccommodationName} ({b.RoomName}), {b.StartDate} till {b.EndDate}, {b.Guests} gäster, Totalt: {b.TotalPrice} SEK");
+            Console.WriteLine($"-> Bokning #{b.BookingId}: {b.AccommodationName} ({b.RoomName}), {b.StartDate:yyyy-MM-dd} till {b.EndDate:yyyy-MM-dd}, {b.Guests} gäster, Totalt: {b.TotalPrice} SEK");
         }
     }
 
