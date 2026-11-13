@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using Holiday_Maker;
 using MySqlConnector;
@@ -89,6 +90,31 @@ class Program
         else
         {
             Console.WriteLine("Test Cancel: Kunde inte hitta bokningen.");
+        }
+
+    try
+        {
+            bool updateSuccess = await repo.UpdateBookingGuestsAsync(1, 1);
+            if (updateSuccess)
+            {
+                Console.WriteLine("Test Update Guests: Antalet gäster har uppdaterats till 1.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(@"Test Update Guests - Oväntat fel: {ex.Message}");
+        }
+
+        try
+        {
+            await repo.UpdateBookingGuestsAsync(1, 5);
+            Console.WriteLine("Test Update Guests: Borde ha misslyckats pga kapacitet!");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"    -> Fångat kapacitetsfel som förväntat: {ex.Message}");
+            Console.ResetColor();
         }
 
 }

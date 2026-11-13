@@ -166,7 +166,7 @@ public class BookingRepository
         string roomCheckQuery = @"
         SELECT r.max_capacity
         FROM bookings b
-        JOIN tooms r ON b.room_id = r.id
+        JOIN rooms r ON b.room_id = r.id
         WHERE b.id = @bookingId;";
 
         int maxCapacity = 0;
