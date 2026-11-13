@@ -105,10 +105,10 @@ public class BookingRepository
 
 
     public async Task<List<CustomerBookingRecord>> GetCustomerBookingsAsync(int customerId)
-{
+    {
     List<CustomerBookingRecord> bookings = new List<CustomerBookingRecord>();
 
-string query = @"
+    string query = @"
         SELECT 
             b.id AS booking_id,
             a.name AS accommodation_name,
@@ -147,5 +147,17 @@ string query = @"
     }
 
     return bookings;
-}
+    }
+
+    public async Task<bool> CancelBookingAsync(MySqlConnection connection, int bookingId)
+    {
+        string query = "DELET FROM bookings WHERE id = @bookingId;";
+
+        using MySqlCommand command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@bookingId", bookingId);
+
+        int rowsAffected = await command.ExecuteNonQueryAsync();
+        return rowsAffected > 0;
+        
+    }
 }
