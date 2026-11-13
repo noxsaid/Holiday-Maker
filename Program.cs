@@ -45,6 +45,7 @@ class Program
     {
         BookingRepository repo = new BookingRepository(connection);
         long createdBookingId = 0;
+        long handoverBookingId = 0;
 
         await ExecuteTestAsync("Test 1: Valid Booking", async () =>
         {
@@ -60,8 +61,8 @@ class Program
 
         await ExecuteTestAsync("Test 3: Same-day handover", async () => 
         {
-            long id = await repo.CreateBookingAsync(3, 7, "2027-01-05", "2027-01-06", 2);
-            Console.WriteLine($"   -> Resultat: Lyckades! Nytt bokningsnummer: {id}");
+            handoverBookingId = await repo.CreateBookingAsync(3, 7, "2027-01-05", "2027-01-06", 2);
+            Console.WriteLine($"   -> Resultat: Lyckades! Nytt bokningsnummer: {handoverBookingId}");
         });
 
         await ExecuteTestAsync("Test 4: Too many guests", async () => 
@@ -128,6 +129,11 @@ class Program
             }
         }
 
+        if (handoverBookingId > 0)
+        {
+            await repo.CancelBookingAsync(Convert.ToInt32(handoverBookingId));
+        }
+        
         CustomerRepository customerRepo = new CustomerRepository(connection);
 
         try
