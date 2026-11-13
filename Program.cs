@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Data;
-using System.Diagnostics.CodeAnalysis;
 using Holiday_Maker;
 using MySqlConnector;
 
@@ -11,7 +9,96 @@ class Program
         await using MySqlConnection connection = Database.GetConnection();
         await connection.OpenAsync();
 
-        await RunBookingTestAsync(connection);
+        bool running = true;
+        while (running)
+        {
+            Console.WriteLine("\n=== Holiday Maker ===");
+            Console.WriteLine("1. Registrera kund");
+            Console.WriteLine("2. Sök lediga rum");
+            Console.WriteLine("3. Skapa bokning");
+            Console.WriteLine("4. Visa kunds bokningar");
+            Console.WriteLine("5. Ändra antal personer");
+            Console.WriteLine("6. Avboka");
+            Console.WriteLine("7. Kör tester");
+            Console.WriteLine("0. Avsluta");
+            Console.Write("Val: ");
+
+            string? input = Console.ReadLine();
+
+            if (input == null)
+            {
+                running = false;
+                continue;
+            }
+
+            if (!int.TryParse(input, out int choice))
+            {
+                Console.WriteLine("Ogiltigt val, skriv en siffra.");
+                continue;
+            }
+
+            switch (choice)
+            {
+                                case 1:
+                    await RegisterCustomerMenuAsync(connection);
+                    break;
+                case 7:
+                    await RunBookingTestAsync(connection);
+                    break;
+                case 0:
+                    running = false;
+                    break;
+                default:
+                    Console.WriteLine("Ogiltigt val.");
+                    break;
+            }
+        }
+    }
+
+    private static string ReadText(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string? text = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                return text.Trim();
+            }
+            Console.WriteLine("Fältet får inte vara tomt.");
+        }
+    }
+
+    private static int ReadInt(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            if (int.TryParse(Console.ReadLine(), out int value))
+            {
+                return value;
+            }
+            Console.WriteLine("Ogiltigt tal, försök igen.");
+        }
+    }
+
+    private static async Task RegisterCustomerMenuAsync(MySqlConnection connection)
+    {
+        CustomerRepository customerRepo = new CustomerRepository(connection);
+
+        string name = ReadText("Namn: ");
+        string telnr = ReadText("Telefonnummer: ");
+        string email = ReadText("E-post: ");
+
+        try
+        {
+            long customerId = await customerRepo.RegisterCustomerAsync(name, telnr, email);
+            Console.WriteLine($"Kunden är registrerad. Kund-ID: {customerId}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
     }
 
     private static async Task ExecuteTestAsync(string testname, Func<Task> testAction)
