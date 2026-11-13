@@ -116,6 +116,28 @@ class Program
             Console.WriteLine($"    -> Fångat kapacitetsfel som förväntat: {ex.Message}");
             Console.ResetColor();
         }
-        
+        CustomerRepository customerRepo = new CustomerRepository(connection);
+
+        try
+        {
+            long newCustomerId = await customerRepo.RegisterCustomerAsync("Test Person", "0709998877", "testperson@email.com");
+            Console.WriteLine($"Test Register Customer: Lyckades! Nytt kund-ID: {newCustomerId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Test Regiester Customer - Fel : {ex.Message}");
+        }
+
+        try
+        {
+            await customerRepo.RegisterCustomerAsync("Duplicate Person", "0701112233", "alex@example.com");
+            Console.WriteLine("Test Register Duplicate: Borde ha misslyckats!");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"    -> Fångat e-post duplikatfel som förväntat: {ex.Message}");
+            Console.ResetColor();
+        }
     }
 }
