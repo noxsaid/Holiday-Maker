@@ -44,6 +44,10 @@ class Program
                     await RegisterCustomerMenuAsync(connection);
                     break;
 
+                case 2:
+                    await SearchRoomsMenuAsync(connection);
+                    break;
+
                 case 3:
                     await CreateBookingMenuAsync(connection);
                     break;
@@ -237,7 +241,6 @@ class Program
             Console.WriteLine($"-> Bokning #{b.BookingId}: {b.AccommodationName} ({b.RoomName}), {b.StartDate:yyyy-MM-dd} till {b.EndDate:yyyy-MM-dd}, {b.Guests} gäster, Totalt: {b.TotalPrice} SEK");
         }
 
-        // Run update tests using the actively created booking ID before canceling it
         if (createdBookingId > 0)
         {
             int targetId = Convert.ToInt32(createdBookingId);
@@ -271,7 +274,6 @@ class Program
                 Console.ResetColor();
             }
 
-            // Finally, cancel the booking to free up the room
             bool success = await repo.CancelBookingAsync(targetId);
             if (success)
             {
@@ -315,104 +317,146 @@ class Program
     }
 
     private static async Task CreateBookingMenuAsync(MySqlConnection connection)
-{
-    // Step 1: Select customer
-    int customerId = await SelectCustomerAsync(connection);
-    if (customerId == 0)
     {
-        return;
-    }
-
-    // Step 2: Ask city, dates, and guests using ReadText
-    string city = ReadText("Ange stad att söka i: ");
-    string checkIn = ReadText("Ange incheckningsdatum (YYYY-MM-DD): ");
-    string checkOut = ReadText("Ange utcheckningsdatum (YYYY-MM-DD): ");
-    int guests = ReadInt("Ange antal gäster: ");
-
-    try
-    {
-        // Validate dates before searching
-        if (!DateTime.TryParse(checkIn, out DateTime startDate) ||
-            !DateTime.TryParse(checkOut, out DateTime endDate) ||
-            endDate <= startDate)
+        int customerId = await SelectCustomerAsync(connection);
+        if (customerId == 0)
         {
-            throw new ArgumentException("Utcheckningsdatumet måste vara efter incheckningsdatumet.");
-        }
-
-        // Step 3: Search and print available rooms
-        RoomRepository roomRepo = new RoomRepository(connection);
-        List<RoomSearchResults> rooms = await roomRepo.SearchAvailableRoomsAsync(city, checkIn, checkOut, guests);
-
-        if (rooms.Count == 0)
-        {
-            Console.WriteLine("\nInga tillgängliga rum hittades för de angivna valen.");
             return;
         }
 
-        Console.WriteLine($"\nTillgängliga rum i {city} ({rooms.Count} st):");
-        foreach (RoomSearchResults r in rooms)
+        string city = ReadText("Ange stad att söka i: ");
+        string checkIn = ReadText("Ange incheckningsdatum (YYYY-MM-DD): ");
+        string checkOut = ReadText("Ange utcheckningsdatum (YYYY-MM-DD): ");
+        int guests = ReadInt("Ange antal gäster: ");
+
+        try
         {
-            Console.WriteLine($"  ID: {r.Id} | {r.AccommodationName} - {r.RoomName} | Max gäster: {r.maxCapacity} | Pris/natt: {r.PricePerNight} SEK");
-        }
+            if (!DateTime.TryParse(checkIn, out DateTime startDate) ||
+                !DateTime.TryParse(checkOut, out DateTime endDate) ||
+                endDate <= startDate)
+            {
+                throw new ArgumentException("Utcheckningsdatumet måste vara efter incheckningsdatumet.");
+            }
 
-        // Step 4: Choose a room ID from the list with validation loop
-        int roomId = 0;
-        RoomSearchResults? selectedRoom = null;
+            RoomRepository roomRepo = new RoomRepository(connection);
+            List<RoomSearchResults> rooms = await roomRepo.SearchAvailableRoomsAsync(city, checkIn, checkOut, guests);
 
-        while (true)
-        {
-            roomId = ReadInt("\nAnge rum-ID att boka: ");
+            if (rooms.Count == 0)
+            {
+                Console.WriteLine("\nInga tillgängliga rum hittades för de angivna valen.");
+                return;
+            }
 
+            Console.WriteLine($"\nTillgängliga rum i {city} ({rooms.Count} st):");
             foreach (RoomSearchResults r in rooms)
             {
-                if (r.Id == roomId)
+                Console.WriteLine($"  ID: {r.Id} | {r.AccommodationName} - {r.RoomName} | Max gäster: {r.maxCapacity} | Pris/natt: {r.PricePerNight} SEK");
+            }
+
+            int roomId = 0;
+            RoomSearchResults? selectedRoom = null;
+
+            while (true)
+            {
+                roomId = ReadInt("\nAnge rum-ID att boka: ");
+
+                foreach (RoomSearchResults r in rooms)
                 {
-                    selectedRoom = r;
+                    if (r.Id == roomId)
+                    {
+                        selectedRoom = r;
+                        break;
+                    }
+                }
+
+                if (selectedRoom != null)
+                {
                     break;
                 }
+
+                Console.WriteLine("Det finns inget rum med det ID:t i sökresultatet.");
             }
 
-            if (selectedRoom != null)
-            {
-                break;
-            }
-
-            Console.WriteLine("Det finns inget rum med det ID:t i sökresultatet.");
-        }
-
-        // Step 5: Create booking
-        BookingRepository bookingRepo = new BookingRepository(connection);
+            BookingRepository bookingRepo = new BookingRepository(connection);
         long bookingId = await bookingRepo.CreateBookingAsync(customerId, roomId, checkIn, checkOut, guests);
 
-        // Step 6: Confirmation with calculated nights and total price
         int nights = (int)(endDate - startDate).TotalDays;
         decimal totalPrice = nights * selectedRoom.PricePerNight;
+        string nightText = nights == 1 ? "natt" : "nätter";
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"\nBokning genomförd!");
         Console.WriteLine($"Bokningsnummer: #{bookingId}");
-        Console.WriteLine($"Totalt pris: {totalPrice:F2} SEK ({nights} nätter à {selectedRoom.PricePerNight} SEK)");
+        Console.WriteLine($"Totalt pris: {totalPrice:F2} SEK ({nights} {nightText} à {selectedRoom.PricePerNight} SEK)");
         Console.ResetColor();
     }
     catch (ArgumentException ex)
-    {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"\nOgiltig indata: {ex.Message}");
-        Console.ResetColor();
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"\nOgiltig indata: {ex.Message}");
+            Console.ResetColor();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"\nKunde inte genomföra bokningen: {ex.Message}");
+            Console.ResetColor();
+        }
+        catch (MySqlException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"\nDatabasfel: {ex.Message}");
+            Console.ResetColor();
+        }
     }
-    catch (InvalidOperationException ex)
+
+    private static async Task SearchRoomsMenuAsync(MySqlConnection connection)
     {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"\nKunde inte genomföra bokningen: {ex.Message}");
-        Console.ResetColor();
+        string city = ReadText("Ange stad att söka I: ");
+        string checkInStr = ReadText("Ange incheckningsdatum (YYYY-MM-DD): ");
+        string checkOutStr = ReadText("Ange utcheckningsdatum (YYYY-MM-DD): ");
+        int guests = ReadInt("Ange antal gäster: ");
+
+        try
+        {
+            if(!DateTime.TryParse(checkInStr, out DateTime startDate) ||
+               !DateTime.TryParse(checkOutStr, out DateTime endDate)||
+               endDate <= startDate)
+            {
+                throw new ArgumentException("Utcheckningsdatumet måste vara efter incheckningsdatumet.");
+            }
+
+            string checkIn = startDate.ToString("yyyy-MM-dd");
+            string checkOut = endDate.ToString("yyyy-MM-dd");
+
+            RoomRepository roomRepo = new RoomRepository(connection);
+            List<RoomSearchResults> rooms = await roomRepo.SearchAvailableRoomsAsync(city, checkIn, checkOut, guests);
+
+            if (rooms.Count == 0)
+            {
+                Console.WriteLine("\nInga tillgängliga rum hittades för de angivna valen.");
+                return;
+            }
+
+            Console.WriteLine($"\nTillgängliga rum i {city} ({rooms.Count} st):");
+            foreach (RoomSearchResults r in rooms)
+            {
+                Console.WriteLine($"  ID: {r.Id} | {r.AccommodationName} - {r.RoomName} | Max gäster: {r.maxCapacity} | Pris/natt: {r.PricePerNight} SEK");
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"\nOgiltig indata: {ex.Message}");
+            Console.ResetColor();
+        }
+        catch (MySqlException ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"\nDatabasfel: {ex.Message}");
+            Console.ResetColor();
+        }
     }
-    catch (MySqlException ex)
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"\nDatabasfel: {ex.Message}");
-        Console.ResetColor();
-    }
-}
 
 }
 
