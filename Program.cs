@@ -59,6 +59,10 @@ class Program
                 case 5:
                     await ChangeGuestsMenuAsync(connection);
                     break;
+
+                case 6:
+                    await CancelBookingMenuAsync(connection);
+                    break;
                 
                 case 7:
                     await RunBookingTestAsync(connection);
@@ -486,6 +490,33 @@ class Program
         catch (InvalidOperationException ex)
         {
             Console.WriteLine($"Ogiltig indata: {ex.Message}");
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"Databasfel: {ex.Message}");
+        }
+    }
+
+    private static async Task CancelBookingMenuAsync(MySqlConnection connection)
+    {
+        int bookingId = await SelectBookingAsync(connection);
+        if (bookingId == 0)
+        {
+            return;
+        }
+
+        BookingRepository repo = new BookingRepository(connection);
+        try
+        {
+            bool cancelled = await repo.CancelBookingAsync(bookingId);
+            if (cancelled)
+            {
+                Console.WriteLine($"Bokning #{bookingId} är avbokad och rummet är ledigt igen.");
+            }
+            else
+            {
+                Console.WriteLine("Kunde inte hitta bokningen.");
+            }
         }
         catch (MySqlException ex)
         {
