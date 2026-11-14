@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using Holiday_Maker;
 using MySqlConnector;
 
@@ -41,6 +42,10 @@ class Program
             {
                 case 1:
                     await RegisterCustomerMenuAsync(connection);
+                    break;
+
+                case 3:
+                    await CreateBookingMenuAsync(connection);
                     break;
 
                 case 4:
@@ -308,4 +313,106 @@ class Program
             Console.ResetColor();
         }
     }
+
+    private static async Task CreateBookingMenuAsync(MySqlConnection connection)
+{
+    // Step 1: Select customer
+    int customerId = await SelectCustomerAsync(connection);
+    if (customerId == 0)
+    {
+        return;
+    }
+
+    // Step 2: Ask city, dates, and guests using ReadText
+    string city = ReadText("Ange stad att söka i: ");
+    string checkIn = ReadText("Ange incheckningsdatum (YYYY-MM-DD): ");
+    string checkOut = ReadText("Ange utcheckningsdatum (YYYY-MM-DD): ");
+    int guests = ReadInt("Ange antal gäster: ");
+
+    try
+    {
+        // Validate dates before searching
+        if (!DateTime.TryParse(checkIn, out DateTime startDate) ||
+            !DateTime.TryParse(checkOut, out DateTime endDate) ||
+            endDate <= startDate)
+        {
+            throw new ArgumentException("Utcheckningsdatumet måste vara efter incheckningsdatumet.");
+        }
+
+        // Step 3: Search and print available rooms
+        RoomRepository roomRepo = new RoomRepository(connection);
+        List<RoomSearchResults> rooms = await roomRepo.SearchAvailableRoomsAsync(city, checkIn, checkOut, guests);
+
+        if (rooms.Count == 0)
+        {
+            Console.WriteLine("\nInga tillgängliga rum hittades för de angivna valen.");
+            return;
+        }
+
+        Console.WriteLine($"\nTillgängliga rum i {city} ({rooms.Count} st):");
+        foreach (RoomSearchResults r in rooms)
+        {
+            Console.WriteLine($"  ID: {r.Id} | {r.AccommodationName} - {r.RoomName} | Max gäster: {r.maxCapacity} | Pris/natt: {r.PricePerNight} SEK");
+        }
+
+        // Step 4: Choose a room ID from the list with validation loop
+        int roomId = 0;
+        RoomSearchResults? selectedRoom = null;
+
+        while (true)
+        {
+            roomId = ReadInt("\nAnge rum-ID att boka: ");
+
+            foreach (RoomSearchResults r in rooms)
+            {
+                if (r.Id == roomId)
+                {
+                    selectedRoom = r;
+                    break;
+                }
+            }
+
+            if (selectedRoom != null)
+            {
+                break;
+            }
+
+            Console.WriteLine("Det finns inget rum med det ID:t i sökresultatet.");
+        }
+
+        // Step 5: Create booking
+        BookingRepository bookingRepo = new BookingRepository(connection);
+        long bookingId = await bookingRepo.CreateBookingAsync(customerId, roomId, checkIn, checkOut, guests);
+
+        // Step 6: Confirmation with calculated nights and total price
+        int nights = (int)(endDate - startDate).TotalDays;
+        decimal totalPrice = nights * selectedRoom.PricePerNight;
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"\nBokning genomförd!");
+        Console.WriteLine($"Bokningsnummer: #{bookingId}");
+        Console.WriteLine($"Totalt pris: {totalPrice:F2} SEK ({nights} nätter à {selectedRoom.PricePerNight} SEK)");
+        Console.ResetColor();
+    }
+    catch (ArgumentException ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"\nOgiltig indata: {ex.Message}");
+        Console.ResetColor();
+    }
+    catch (InvalidOperationException ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"\nKunde inte genomföra bokningen: {ex.Message}");
+        Console.ResetColor();
+    }
+    catch (MySqlException ex)
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"\nDatabasfel: {ex.Message}");
+        Console.ResetColor();
+    }
 }
+
+}
+
