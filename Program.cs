@@ -53,9 +53,13 @@ class Program
                     break;
 
                 case 4:
-                await ShowCustomerBookingsMenuAsync(connection);
-                break;
+                    await ShowCustomerBookingsMenuAsync(connection);
+                    break;
 
+                case 5:
+                    await ChangeGuestsMenuAsync(connection);
+                    break;
+                
                 case 7:
                     await RunBookingTestAsync(connection);
                     break;
@@ -407,6 +411,85 @@ class Program
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"\nDatabasfel: {ex.Message}");
             Console.ResetColor();
+        }
+    }
+
+    private static async Task<int> SelectBookingAsync(MySqlConnection connection)
+    {
+        int customerId = await SelectCustomerAsync(connection);
+        if (customerId == 0)
+        {
+            return 0;
+        }
+
+        BookingRepository repo = new BookingRepository(connection);
+        List<CustomerBookingRecord> bookings = await repo.GetCustomerBookingsAsync(customerId);
+
+        if(bookings.Count == 0)
+        {
+            Console.WriteLine("\nKunden har inga bokningar.");
+            return 0;
+        }
+
+        Console.WriteLine($"\nBokningar för kund {customerId}:");
+        foreach (CustomerBookingRecord b in bookings)
+        {
+            Console.WriteLine($"  #{b.BookingId}: {b.AccommodationName} ({b.RoomName}), {b.StartDate:yyyy-MM-dd} till {b.EndDate:yyyy-MM-dd}, {b.Guests} gäster, Totalt: {b.TotalPrice} SEK");
+        }
+
+        while (true)
+        {
+            int bookingId = ReadInt("Ange bokningsnummer (0 för att avbryta): ");
+            if (bookingId == 0)
+            {
+                return 0;
+            }
+
+            foreach (CustomerBookingRecord b in bookings)
+            {
+                if (b.BookingId == bookingId)
+                {
+                    return bookingId;
+                }
+            }
+            Console.WriteLine("Kunden har ingen bokning med det numret.");
+        }
+    }
+
+    private static async Task ChangeGuestsMenuAsync(MySqlConnection connection)
+    {
+        int bookingId = await SelectBookingAsync(connection);
+        if (bookingId == 0)
+        {
+            return;
+        }
+
+        int newGuests = ReadInt("Nytt antal personer: ");
+
+        BookingRepository repo = new BookingRepository(connection);
+        try
+        {
+            bool updated = await repo.UpdateBookingGuestsAsync(bookingId, newGuests);
+            if (updated)
+            {
+                Console.WriteLine($"Bokning #{bookingId} har nu {newGuests} personer.");
+            }
+            else
+            {
+                Console.WriteLine("Kunde inte hitta bokningen.");
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine($"Ogiltig indata: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Ogiltig indata: {ex.Message}");
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"Databasfel: {ex.Message}");
         }
     }
 
