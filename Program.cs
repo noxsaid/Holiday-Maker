@@ -443,6 +443,27 @@ class Program
             {
                 Console.WriteLine($"  ID: {r.Id} | {r.AccommodationName} - {r.RoomName} | Max gäster: {r.maxCapacity} | Pris/natt: {r.PricePerNight} SEK");
             }
+
+            Console.WriteLine("\nSortering:");
+            Console.WriteLine("1. Standard");
+            Console.WriteLine("2. Pris (lägst först)");
+            Console.WriteLine("3. Pris (högst först)");
+            int sortChoice = ReadInt("Välj sortering: ");
+
+            if (sortChoice == 2)
+            {
+                rooms = rooms.OrderBy(r => r.PricePerNight).ToList();
+            }   
+            else if (sortChoice == 3)
+            {
+                rooms = rooms.OrderByDescending(r => r.PricePerNight).ToList();
+            }
+
+            Console.WriteLine($"\nTillgängliga rum i {city} ({rooms.Count} st):");
+            foreach (RoomSearchResults r in rooms)
+            {
+                Console.WriteLine($"  ID: {r.Id} | {r.AccommodationName} - {r.RoomName} | Max gäster: {r.maxCapacity} | Pris/natt: {r.PricePerNight} SEK");
+            }
         }
         catch (ArgumentException ex)
         {
