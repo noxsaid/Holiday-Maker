@@ -39,19 +39,57 @@ class Program
 
             switch (choice)
             {
-                                case 1:
+                case 1:
                     await RegisterCustomerMenuAsync(connection);
                     break;
+
+                case 4:
+                await ShowCustomerBookingsMenuAsync(connection);
+                break;
+
                 case 7:
                     await RunBookingTestAsync(connection);
                     break;
+
                 case 0:
                     running = false;
                     break;
+
                 default:
                     Console.WriteLine("Ogiltigt val.");
                     break;
             }
+        }
+    }
+
+    private static async Task<int> SelectCustomerAsync(MySqlConnection connection)
+    {
+        CustomerRepository customerRepo = new CustomerRepository(connection);
+        List<CustomerRecord> customers = await customerRepo.GetAllCustomersAsync();
+
+        if (customers.Count == 0)
+        {
+            Console.WriteLine("Det finns inga kunder. Registrera en kund först.");
+            return 0;
+        }
+
+        Console.WriteLine("\nKunder:");
+        foreach (CustomerRecord c in customers)
+        {
+            Console.WriteLine($"  {c.Id}: {c.Name} ({c.Email}, {c.Telnr})");
+        }
+
+        while (true)
+        {
+            int customerId = ReadInt("Ange kund-ID: ");
+            foreach (CustomerRecord c in customers)
+            {
+                if (c.Id == customerId)
+                {
+                    return customerId;
+                }
+            }
+            Console.WriteLine("Det finns ingen kund med det ID:t.");
         }
     }
 
@@ -98,6 +136,30 @@ class Program
         catch (InvalidOperationException ex)
         {
             Console.WriteLine(ex.Message);
+        }
+    }
+
+    private static async Task ShowCustomerBookingsMenuAsync(MySqlConnection connection)
+    {
+        int customerId = await SelectCustomerAsync(connection);
+        if (customerId == 0)
+        {
+            return;
+        }
+
+        BookingRepository repo = new BookingRepository(connection);
+        List<CustomerBookingRecord> bookings = await repo.GetCustomerBookingsAsync(customerId);
+
+        if (bookings.Count == 0)
+        {
+            Console.WriteLine("\nKunden har inga bokningar.");
+            return;
+        }
+
+        Console.WriteLine($"\nBokningar för kund {customerId} (antal: {bookings.Count}):");
+        foreach (CustomerBookingRecord b in bookings)
+        {
+            Console.WriteLine($"-> Bokning #{b.BookingId}: {b.AccommodationName} ({b.RoomName}), {b.StartDate:yyyy-MM-dd} till {b.EndDate:yyyy-MM-dd}, {b.Guests} gäster, Totalt: {b.TotalPrice} SEK");
         }
     }
 
