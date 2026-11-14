@@ -550,6 +550,47 @@ class Program
         string checkOutStr = ReadText("Ange utcheckningsdatum (YYYY-MM-DD): ");
         int guests = ReadInt("Ange antal gäster: ");
 
+        Console.WriteLine("\n--- Valfria filter (tryck Enter för att hoppa över) ---");
+
+        Console.Write("pool (j/n): ");
+        string poolInput = Console.ReadLine() ?? string.Empty;
+        bool hasPool = poolInput.Equals("j", StringComparison.OrdinalIgnoreCase) ||
+                       poolInput.Equals("ja", StringComparison.OrdinalIgnoreCase);
+
+        Console.Write("Restaurang (j/n): ");
+        string resturantInput = Console.ReadLine() ?? string.Empty;
+        bool hasResturant = resturantInput.Equals("j", StringComparison.OrdinalIgnoreCase) ||
+                           resturantInput.Equals("ja", StringComparison.OrdinalIgnoreCase);
+
+        Console.Write("Max avstånd till strand (km): ");
+        string beachDistStr = Console.ReadLine() ?? string.Empty;
+        int? maxBeachDistance = null;
+        if (int.TryParse(beachDistStr, out int beachDistance))
+            maxBeachDistance = beachDistance;
+
+        Console.Write("Max avstånd till centrum (km): ");
+        string centerDistStr = Console.ReadLine() ?? string.Empty;
+        int? maxCenterDistance = null;
+        if (int.TryParse(centerDistStr, out int centerDistance))
+            maxCenterDistance = centerDistance;
+        
+
+                Console.WriteLine("\nSortering:");
+        Console.WriteLine("1. Pris, lägst först");
+        Console.WriteLine("2. Omdöme, högst först");
+        Console.WriteLine("Enter. Ingen sortering");
+        Console.Write("Välj: ");
+        int sortBy = 0;
+        string? sortInput = Console.ReadLine();
+        if (sortInput == "1")
+        {
+            sortBy = 1;
+        }
+        else if (sortInput == "2")
+        {
+            sortBy = 2;
+        }
+
         try
         {
             if(!DateTime.TryParse(checkInStr, out DateTime startDate) ||
@@ -563,33 +604,14 @@ class Program
             string checkOut = endDate.ToString("yyyy-MM-dd");
 
             RoomRepository roomRepo = new RoomRepository(connection);
-            List<RoomSearchResults> rooms = await roomRepo.SearchAvailableRoomsAsync(city, checkIn, checkOut, guests);
+
+            List<RoomSearchResults> rooms = await roomRepo.SearchAvailableRoomsAsync(
+                city, checkIn, checkOut, guests, hasPool, hasResturant, maxBeachDistance, maxCenterDistance, sortBy);
 
             if (rooms.Count == 0)
             {
                 Console.WriteLine("\nInga tillgängliga rum hittades för de angivna valen.");
                 return;
-            }
-
-            Console.WriteLine($"\nTillgängliga rum i {city} ({rooms.Count} st):");
-            foreach (RoomSearchResults r in rooms)
-            {
-                Console.WriteLine($"  ID: {r.Id} | {r.AccommodationName} - {r.RoomName} | Max gäster: {r.maxCapacity} | Pris/natt: {r.PricePerNight} SEK");
-            }
-
-            Console.WriteLine("\nSortering:");
-            Console.WriteLine("1. Standard");
-            Console.WriteLine("2. Pris (lägst först)");
-            Console.WriteLine("3. Pris (högst först)");
-            int sortChoice = ReadInt("Välj sortering: ");
-
-            if (sortChoice == 2)
-            {
-                rooms = rooms.OrderBy(r => r.PricePerNight).ToList();
-            }   
-            else if (sortChoice == 3)
-            {
-                rooms = rooms.OrderByDescending(r => r.PricePerNight).ToList();
             }
 
             Console.WriteLine($"\nTillgängliga rum i {city} ({rooms.Count} st):");
@@ -610,7 +632,31 @@ class Program
             Console.WriteLine($"\nDatabasfel: {ex.Message}");
             Console.ResetColor();
         }
+        }
+
+            private static bool AskYesNo(string prompt)
+    {
+        Console.Write(prompt);
+        string? answer = Console.ReadLine();
+        return answer != null && answer.Trim().ToLower() == "j";
     }
 
-}
+    private static int? ReadOptionalInt(string prompt)
+    {
+        while (true)
+        {
+            Console.Write(prompt);
+            string? text = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+            if (int.TryParse(text, out int value) && value >= 0)
+            {
+                return value;
+            }
+            Console.WriteLine("Ange ett positivt heltal eller lämna tomt.");
+        }
+    }
+    }
 
