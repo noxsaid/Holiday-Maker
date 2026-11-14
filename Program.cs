@@ -7,9 +7,20 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        await using MySqlConnection connection = Database.GetConnection();
-        await connection.OpenAsync();
+        MySqlConnection connection;
+        try
+        {
+            connection = Database.GetConnection();
+            await connection.OpenAsync();
+        }
+        catch (MySqlException ex)
+        {
+            Console.WriteLine($"Kunde inte ansluta till databasen: {ex.Message}");
+            return;
+        }
 
+        await using (connection)
+        {
         bool running = true;
         while (running)
         {
@@ -38,6 +49,8 @@ class Program
                 continue;
             }
 
+            try
+            {
             switch (choice)
             {
                 case 1:
@@ -76,6 +89,12 @@ class Program
                     Console.WriteLine("Ogiltigt val.");
                     break;
             }
+            }
+            catch (MySqlException ex)
+            {
+                Console.WriteLine($"Databasfel: {ex.Message}");
+            }
+        }
         }
     }
 
@@ -489,7 +508,7 @@ class Program
         }
         catch (InvalidOperationException ex)
         {
-            Console.WriteLine($"Ogiltig indata: {ex.Message}");
+            Console.WriteLine($"Kunde inte ändra: {ex.Message}");
         }
         catch (MySqlException ex)
         {
