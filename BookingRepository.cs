@@ -166,7 +166,7 @@ public class BookingRepository
 
         if (newGuests < 1)
         {
-            throw new ArgumentException("Antaler gäster måste vara minst 1");
+            throw new ArgumentException("Antalet gäster måste vara minst 1.");
         }
         string roomCheckQuery = @"
         SELECT r.max_capacity
